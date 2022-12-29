@@ -1,7 +1,19 @@
 use cmake::{self, Config};
 use std::path::PathBuf;
 
+enum CargoProfile {
+    Release,
+    Debug,
+    Unknown,
+}
+
 fn main() {
+    let profile = match std::env::var("PROFILE").unwrap().as_str() {
+        "debug" => CargoProfile::Debug,
+        "release" => CargoProfile::Release,
+        _ => CargoProfile::Unknown,
+    };
+
     // Build minizip with cmake
     let dst = Config::new("minizip")
         .define("MZ_COMPAT", "ON")
@@ -19,7 +31,7 @@ fn main() {
         dst.join("lib").display()
     );
 
-    println!("cargo:rustc-link-lib=static:+bundle=minizip");
+    println!("cargo:rustc-link-lib=minizip");
 
     let target = std::env::var("TARGET").unwrap();
     if target.contains("apple") {
@@ -28,8 +40,13 @@ fn main() {
         println!("cargo:rustc-link-lib=static=z");
         println!("cargo:rustc-link-lib=iconv");
     }
+
     if target.contains("windows") {
-        println!("cargo:rustc-link-lib=static=zlibstatic");
+        match profile {
+            CargoProfile::Release => println!("cargo:rustc-link-lib=static=zlibstatic"),
+            CargoProfile::Debug => println!("cargo:rustc-link-lib=static=zlibstaticd"),
+            CargoProfile::Unknown => (),
+        }
     }
 
     // Generate Rust FFI bindings
