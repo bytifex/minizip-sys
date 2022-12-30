@@ -14,6 +14,8 @@ fn main() {
         _ => CargoProfile::Unknown,
     };
 
+    let target = std::env::var("TARGET").unwrap();
+
     // Build minizip with cmake
     let dst = Config::new("minizip")
         .define("MZ_COMPAT", "ON")
@@ -31,9 +33,12 @@ fn main() {
         dst.join("lib").display()
     );
 
-    println!("cargo:rustc-link-lib=minizip");
+    if target.contains("windows") {
+        println!("cargo:rustc-link-lib=static=libminizip");
+    } else {
+        println!("cargo:rustc-link-lib=static=minizip");
+    }
 
-    let target = std::env::var("TARGET").unwrap();
     if target.contains("apple") {
         println!("cargo:rustc-link-lib=framework=CoreFoundation");
         println!("cargo:rustc-link-lib=framework=Security");
